@@ -47,6 +47,13 @@ input, select {
   color: #666;
 }
 
+.trip-warning {
+  font-size: 13px;
+  margin-top: 6px;
+  font-weight: bold;
+  color: #8a4b08;
+}
+
 button {
   width: 100%;
   padding: 14px;
@@ -112,6 +119,10 @@ textarea {
   <option value="1">單程</option>
 </select>
 
+<div class="trip-warning">
+  ※ 若有住宿，行程請選「來回」，否則住宿費率可能計算錯誤。
+</div>
+
 <label>住宿日數</label>
 <input type="number" id="stay" value="0" min="0">
 <div class="help">沒有住宿請填 0</div>
@@ -167,7 +178,7 @@ function calculate() {
   let warning = "";
 
   if (trip === 1 && stay > 0) {
-    warning = "⚠ 單程＋住宿：住宿算法可能有問題，請另外確認";
+    warning = "⚠ 單程＋住宿：住宿費率可能計算錯誤，請確認行程是否應選「來回」。";
   }
 
   document.getElementById("warning").innerText = warning;
