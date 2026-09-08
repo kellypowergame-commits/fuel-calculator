@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>出差油資計算機</title>
 
 <style>
@@ -28,6 +29,7 @@ label {
   display: block;
   margin-top: 14px;
   margin-bottom: 5px;
+  font-weight: bold;
 }
 
 input, select {
@@ -35,6 +37,14 @@ input, select {
   padding: 12px;
   font-size: 16px;
   box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.help {
+  font-size: 13px;
+  margin-top: 4px;
+  color: #666;
 }
 
 button {
@@ -43,6 +53,8 @@ button {
   margin-top: 18px;
   font-size: 16px;
   cursor: pointer;
+  border-radius: 8px;
+  border: 1px solid #aaa;
 }
 
 .result {
@@ -52,6 +64,12 @@ button {
   border-radius: 8px;
 }
 
+.total {
+  font-size: 30px;
+  font-weight: bold;
+  margin-top: 6px;
+}
+
 .warning {
   margin-top: 12px;
   font-weight: bold;
@@ -59,11 +77,22 @@ button {
 
 textarea {
   width: 100%;
-  height: 100px;
+  height: 120px;
   margin-top: 10px;
   font-size: 15px;
   padding: 10px;
   box-sizing: border-box;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.rule {
+  margin-top: 20px;
+  padding: 12px;
+  background: #f8f8f8;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.7;
 }
 </style>
 </head>
@@ -75,7 +104,7 @@ textarea {
 <h2>出差油資計算機</h2>
 
 <label>單程公里數</label>
-<input type="number" id="km" value="0">
+<input type="number" id="km" value="0" min="0">
 
 <label>行程</label>
 <select id="trip">
@@ -84,75 +113,144 @@ textarea {
 </select>
 
 <label>住宿日數</label>
-<input type="number" id="stay" value="0">
+<input type="number" id="stay" value="0" min="0">
+<div class="help">沒有住宿請填 0</div>
 
 <label>單程 ETC</label>
-<input type="number" id="etc" value="0">
+<input type="number" id="etc" value="0" min="0">
+<div class="help">ETC 僅產生備註，不計入油資總金額</div>
 
 <label>趟數</label>
-<input type="number" id="times" value="1">
+<input type="number" id="times" value="1" min="1">
 
 <button onclick="calculate()">計算</button>
 
 <div class="result">
-  <div>總金額：</div>
-  <h2 id="total">0 元</h2>
+
+  <div>油資總金額</div>
+  <div class="total" id="total">0 元</div>
 
   <div id="warning" class="warning"></div>
 
-  <label>備註</label>
+  <label>報帳備註</label>
   <textarea id="note" readonly></textarea>
 
   <button onclick="copyNote()">複製備註</button>
+
+</div>
+
+<div class="rule">
+  <strong>計算方式</strong><br>
+  公里數 × 單程/來回 ×（3.5＋住宿日數）× 趟數<br>
+  ETC 僅列於備註，不計入油資總金額。
 </div>
 
 </div>
 
 <script>
-function calculate() {
-  const km = Number(document.getElementById("km").value);
-  const trip = Number(document.getElementById("trip").value);
-  const stay = Number(document.getElementById("stay").value);
-  const etc = Number(document.getElementById("etc").value);
-  const times = Number(document.getElementById("times").value);
 
-  const total = ((km * trip * (3.5 + stay)) + (etc * trip)) * times;
+function calculate() {
+
+  const km = Number(document.getElementById("km").value) || 0;
+  const trip = Number(document.getElementById("trip").value);
+  const stay = Number(document.getElementById("stay").value) || 0;
+  const etc = Number(document.getElementById("etc").value) || 0;
+  const times = Number(document.getElementById("times").value) || 1;
+
+  // 油資計算
+  // ETC 不計入總金額
+  const total = km * trip * (3.5 + stay) * times;
 
   document.getElementById("total").innerText =
     total.toLocaleString() + " 元";
 
+  // 單程又住宿時提醒
   let warning = "";
 
   if (trip === 1 && stay > 0) {
-    warning = "⚠ 單程＋住宿，住宿算法可能需另外確認";
+    warning = "⚠ 單程＋住宿：住宿算法可能有問題，請另外確認";
   }
 
   document.getElementById("warning").innerText = warning;
 
   const tripText = trip === 2 ? "來回" : "單程";
 
+  // ETC 顯示
+  const etcTotal = etc * trip;
+
+  let etcText = "";
+
+  if (etc > 0) {
+    if (trip === 2) {
+      etcText =
+        "｜ETC：單程" +
+        formatNumber(etc) +
+        "元，來回" +
+        formatNumber(etcTotal) +
+        "元";
+    } else {
+      etcText =
+        "｜ETC：" +
+        formatNumber(etc) +
+        "元";
+    }
+  } else {
+    etcText = "｜ETC：0元";
+  }
+
+  // 備註公式
   const note =
-    km + "公里｜" +
+    formatNumber(km) +
+    "公里｜" +
     tripText +
-    "｜住宿" + stay + "日｜ETC " + etc + "元｜[" +
-    km + "×" + trip + "×(3.5+" + stay + ")+" +
-    etc + "×" + trip + "]×" +
-    times + "趟＝" +
-    total + "元";
+    "｜住宿" +
+    formatNumber(stay) +
+    "日" +
+    etcText +
+    "｜(" +
+    formatNumber(km) +
+    "×" +
+    trip +
+    "×(3.5+" +
+    formatNumber(stay) +
+    "))×" +
+    formatNumber(times) +
+    "趟＝" +
+    formatNumber(total) +
+    "元";
 
   document.getElementById("note").value = note;
 }
 
+function formatNumber(number) {
+  return Number(number).toLocaleString("zh-TW", {
+    maximumFractionDigits: 2
+  });
+}
+
 function copyNote() {
+
   const text = document.getElementById("note");
 
-  text.select();
-  text.setSelectionRange(0, 99999);
+  if (!text.value) {
+    alert("請先計算");
+    return;
+  }
 
-  navigator.clipboard.writeText(text.value);
-
-  alert("備註已複製");
+  navigator.clipboard.writeText(text.value)
+    .then(function() {
+      alert("備註已複製");
+    })
+    .catch(function() {
+      text.select();
+      document.execCommand("copy");
+      alert("備註已複製");
+    });
 }
+
+// 開啟網頁時先算一次
+calculate();
+
 </script>
 
 </body>
