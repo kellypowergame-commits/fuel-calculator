@@ -116,9 +116,9 @@ textarea {
 <input type="number" id="stay" value="0" min="0">
 <div class="help">沒有住宿請填 0</div>
 
-<label>單程 ETC</label>
+<label>ETC</label>
 <input type="number" id="etc" value="0" min="0">
-<div class="help">ETC 僅產生備註，不計入油資總金額</div>
+<div class="help">ETC請填入單趟金額</div>
 
 <label>趟數</label>
 <input type="number" id="times" value="1" min="1">
@@ -127,7 +127,7 @@ textarea {
 
 <div class="result">
 
-  <div>油資總金額</div>
+  <div>總金額</div>
   <div class="total" id="total">0 元</div>
 
   <div id="warning" class="warning"></div>
@@ -141,8 +141,7 @@ textarea {
 
 <div class="rule">
   <strong>計算方式</strong><br>
-  公里數 × 單程/來回 ×（3.5＋住宿日數）× 趟數<br>
-  ETC 僅列於備註，不計入油資總金額。
+  ((公里數 × 單程/來回 × (3.5＋住宿日數)) ＋ ETC) × 趟數
 </div>
 
 </div>
@@ -157,14 +156,14 @@ function calculate() {
   const etc = Number(document.getElementById("etc").value) || 0;
   const times = Number(document.getElementById("times").value) || 1;
 
-  // 油資計算
-  // ETC 不計入總金額
-  const total = km * trip * (3.5 + stay) * times;
+  const rate = 3.5 + stay;
+
+  const total =
+    ((km * trip * rate) + etc) * times;
 
   document.getElementById("total").innerText =
-    total.toLocaleString() + " 元";
+    formatNumber(total) + " 元";
 
-  // 單程又住宿時提醒
   let warning = "";
 
   if (trip === 1 && stay > 0) {
@@ -175,47 +174,25 @@ function calculate() {
 
   const tripText = trip === 2 ? "來回" : "單程";
 
-  // ETC 顯示
-  const etcTotal = etc * trip;
-
-  let etcText = "";
-
-  if (etc > 0) {
-    if (trip === 2) {
-      etcText =
-        "｜ETC：單程" +
-        formatNumber(etc) +
-        "元，來回" +
-        formatNumber(etcTotal) +
-        "元";
-    } else {
-      etcText =
-        "｜ETC：" +
-        formatNumber(etc) +
-        "元";
-    }
-  } else {
-    etcText = "｜ETC：0元";
-  }
-
-  // 備註公式
   const note =
     formatNumber(km) +
     "公里｜" +
     tripText +
     "｜住宿" +
     formatNumber(stay) +
-    "日" +
-    etcText +
-    "｜(" +
+    "日｜ETC " +
+    formatNumber(etc) +
+    "元｜((" +
     formatNumber(km) +
     "×" +
     trip +
-    "×(3.5+" +
-    formatNumber(stay) +
-    "))×" +
+    "×" +
+    formatNumber(rate) +
+    ")+" +
+    formatNumber(etc) +
+    ")×" +
     formatNumber(times) +
-    "趟＝" +
+    "＝" +
     formatNumber(total) +
     "元";
 
@@ -248,7 +225,6 @@ function copyNote() {
     });
 }
 
-// 開啟網頁時先算一次
 calculate();
 
 </script>
